@@ -1,4 +1,4 @@
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 from psd_tools import PSDImage
 import functools
 import logging
@@ -6,7 +6,6 @@ import time
 import psutil
 import os
 import warnings
-
 
 warnings.filterwarnings("ignore", module="psd_tools")
 logging.basicConfig(level=logging.INFO)
@@ -55,6 +54,24 @@ def process_layer(psd, replacements, final_image, psd_size=None):
             layer_image = layer.composite().convert("RGBA")
 
             if layer.name in replacements and layer.is_visible():
+                if type(replacements[layer.name]) is list:
+                    # 创建一个与PSD大小相同的空白图像
+                    replacement_layer = Image.new("RGBA", psd_size)
+
+                    # 新建文字图层
+                    text_layer = Image.new("RGBA", layer.size)
+                    draw = ImageDraw.Draw(text_layer)
+                    fontstyle = ImageFont.truetype(replacements[layer.name][1], replacements[layer.name][2])
+                    draw.text((0, 0), half_width_to_full_width(replacements[layer.name][0]), fill=(0, 0, 0, 255),
+                              font=fontstyle)
+
+                    # 将文字图层粘贴到目标图层的位置
+                    replacement_layer.paste(text_layer, layer.offset)
+
+                    # 将修改后的图层叠加到最终图像上
+                    final_image = Image.alpha_composite(final_image, replacement_layer)
+                    continue
+
                 new_image_path = replacements[layer.name]
                 new_image = Image.open(new_image_path).convert("RGBA")
 
@@ -63,13 +80,13 @@ def process_layer(psd, replacements, final_image, psd_size=None):
                 # 创建一个与PSD大小相同的空白图像，并将替换后的图像粘贴到目标图层的位置
                 replacement_layer = Image.new("RGBA", psd_size)
                 replacement_layer.paste(new_image_resized, layer.offset)
-              
+
                 # 处理蒙版
                 if layer.mask:
                     # 蒙版位置
                     bbox = layer.mask.bbox
                     position = (bbox[0], bbox[1])  # (x0, y0)
-                  
+
                     mask_data = layer.mask.topil()
                     alpha = Image.new("L", replacement_layer.size, 0)
 
@@ -91,10 +108,23 @@ def process_layer(psd, replacements, final_image, psd_size=None):
     return final_image
 
 
+def half_width_to_full_width(text):
+    # 半角转全角
+    rstring = ""
+    for t_char in text:
+        inside_code = ord(t_char)
+        if inside_code == 32:  # 半角空格
+            inside_code = 12288
+        elif 32 <= inside_code <= 126:
+            inside_code += 65248
+
+        rstring += chr(inside_code)
+    return rstring
+
+
 # @get_time()
 @profile_resources
 def draw_frame():
-
     psd_path = 'final.psd'
     psd = PSDImage.open(psd_path)
     layer_name = ["UI_Chara_1", "UI_Chara_2", "UI_Chara_3"]
@@ -111,8 +141,9 @@ def draw_frame():
         "background": "bg.png",
         "UI_Icon_image": "UI_Icon.png",
         "UI_Plate_409501": "UI_Plate.png",
+        "User_Name": ["我去是舞萌痴AA", "SEGA_MARUGOTHICDB.ttf", 32.57]
     }
-  
+
     final_image = process_layer(psd, replacements, final_image)
 
     # final_image.show()
