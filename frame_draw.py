@@ -42,6 +42,28 @@ def profile_resources(func):
     return wrapper
 
 
+def get_time(log=True, log_level=logging.INFO):
+    def decorator(f):
+        @functools.wraps(f)
+        def inner(*args, **kwargs):
+            s_time = time.time()
+            res = f(*args, **kwargs)
+            e_time = time.time()
+            elapsed_time = e_time - s_time
+            if log:
+                logging.log(log_level, '函数 {}耗时：{:.4f}秒'.format(f.__name__, elapsed_time))
+            return res
+
+        return inner
+
+    return decorator
+
+
+temp_index = 0
+
+
+
+# @get_time()
 def process_layer(psd, replacements, final_image, psd_size=None):
     global temp_index
     if psd_size is None:
