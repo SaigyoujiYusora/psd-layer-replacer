@@ -80,19 +80,59 @@ def process_layer(psd, replacements, final_image, psd_size=None):
                     # 创建一个与PSD大小相同的空白图像
                     replacement_layer = Image.new("RGBA", psd_size)
 
-                    # 新建文字图层
-                    text_layer = Image.new("RGBA", layer.size)
-                    draw = ImageDraw.Draw(text_layer)
-                    fontstyle = ImageFont.truetype(replacements[layer.name][1], replacements[layer.name][2])
-                    draw.text((0, 0), half_width_to_full_width(replacements[layer.name][0]), fill=(0, 0, 0, 255),
-                              font=fontstyle)
+                if type(replacements[layer.name]) is not str:
+                    if type(replacements[layer.name]) is int:
+                        mask_percent = replacements[layer.name]
 
-                    # 将文字图层粘贴到目标图层的位置
-                    replacement_layer.paste(text_layer, layer.offset)
+                        mask = layer.mask.topil()
+                        mask = mask.convert("L")
+                        with open(f"temp/star_mask1.png", 'wb') as f:
+                            mask.save(f)
 
-                    # 将修改后的图层叠加到最终图像上
-                    final_image = Image.alpha_composite(final_image, replacement_layer)
-                    continue
+                        draw_mask = ImageDraw.Draw(mask)
+                        draw_mask.rectangle([0, 0, mask.width, mask.height * (mask_percent / 100)], fill=0)
+                        with open(f"temp/star_mask_edit.png", 'wb') as f:
+                            mask.save(f)
+
+                        replacement_layer = Image.new("RGBA", psd_size)
+                        replacement_layer.paste(layer_image, layer.offset)
+
+                        alpha = Image.new("L", replacement_layer.size, 0)
+
+                        position = layer.mask.bbox[:2]  # (x0, y0)
+                        # 将蒙版数据粘贴到 alpha 图像上
+                        alpha.paste(mask, position)
+
+                        # 将 alpha 应用于裁剪后的图像
+                        replacement_layer = Image.composite(replacement_layer,
+                                                            Image.new("RGBA", psd_size, (0, 0, 0, 0)), alpha)
+                        with open(f"temp/star_mask2.png", 'wb') as f:
+                            alpha.save(f)
+
+                        final_image = Image.alpha_composite(final_image, replacement_layer)
+
+                        continue
+                    elif type(replacements[layer.name]) is bool:
+                        if replacements[layer.name]:
+                            pass
+                        else:
+                            continue
+                    elif type(replacements[layer.name]) is list:
+                        replacement_layer = Image.new("RGBA", psd_size)
+
+                        # 新建文字图层
+                        text_layer = Image.new("RGBA", layer.size)
+                        draw = ImageDraw.Draw(text_layer)
+                        fontstyle = ImageFont.truetype(replacements[layer.name][1], replacements[layer.name][2])
+                        draw.text((0, 0), half_width_to_full_width(replacements[layer.name][0]), fill=(0, 0, 0, 255),
+                                  font=fontstyle)
+
+                        # 将文字图层粘贴到目标图层的位置
+                        replacement_layer.paste(text_layer, layer.offset)
+
+                        # 将修改后的图层叠加到最终图像上
+                        final_image = Image.alpha_composite(final_image, replacement_layer)
+                        continue
 
                 new_image_path = replacements[layer.name]
                 new_image = Image.open(new_image_path).convert("RGBA")
