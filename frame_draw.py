@@ -76,27 +76,29 @@ def process_layer(psd, replacements, final_image, psd_size=None):
             layer_image = layer.composite().convert("RGBA")
 
             if layer.name in replacements and layer.is_visible():
-                if type(replacements[layer.name]) is list:
-                    # 创建一个与PSD大小相同的空白图像
-                    replacement_layer = Image.new("RGBA", psd_size)
 
                 if type(replacements[layer.name]) is not str:
                     if type(replacements[layer.name]) is int:
+                        # 获取蒙版百分比
                         mask_percent = replacements[layer.name]
 
+                        # 获取蒙版
                         mask = layer.mask.topil()
                         mask = mask.convert("L")
                         with open(f"temp/star_mask1.png", 'wb') as f:
                             mask.save(f)
 
+                        # 编辑蒙版
                         draw_mask = ImageDraw.Draw(mask)
                         draw_mask.rectangle([0, 0, mask.width, mask.height * (mask_percent / 100)], fill=0)
                         with open(f"temp/star_mask_edit.png", 'wb') as f:
                             mask.save(f)
 
+                        # 创建一个与PSD大小相同的空白图像，并将替换后的图像粘贴到目标图层的位置
                         replacement_layer = Image.new("RGBA", psd_size)
                         replacement_layer.paste(layer_image, layer.offset)
 
+                        # 创建一个与裁剪图像大小相同的透明图像
                         alpha = Image.new("L", replacement_layer.size, 0)
 
                         position = layer.mask.bbox[:2]  # (x0, y0)
@@ -118,6 +120,7 @@ def process_layer(psd, replacements, final_image, psd_size=None):
                         else:
                             continue
                     elif type(replacements[layer.name]) is list:
+                        # 创建一个与PSD大小相同的空白图像
                         replacement_layer = Image.new("RGBA", psd_size)
 
                         # 新建文字图层
@@ -148,18 +151,43 @@ def process_layer(psd, replacements, final_image, psd_size=None):
                     # 蒙版位置
                     bbox = layer.mask.bbox
                     position = (bbox[0], bbox[1])  # (x0, y0)
+                    # size = (bbox[2] - bbox[0], bbox[3] - bbox[1])  # (width, height)
+                    size = (bbox[2] - bbox[0], bbox[3] - bbox[1])  # (width, height)
+                    # 获取蒙版的 alpha 通道数据
+                    mask_data = layer.mask.topil()  # 获取蒙版图像
+                    with open(f"temp/temp{temp_index}.png", 'wb') as f:
+                        mask_data.save(f)
+                    temp_index += 1
+                    mask_data = mask_data.convert("L")  # 转换为灰度图像，值在 0 到 255 之间
 
                     mask_data = layer.mask.topil()
                     alpha = Image.new("L", replacement_layer.size, 0)
+                    with open(f"temp/temp{temp_index}.png", 'wb') as f:
+                        alpha.save(f)
+                    temp_index += 1
 
                     # 粘贴蒙版
                     alpha.paste(mask_data, position)
+                    with open(f"temp/temp{temp_index}.png", 'wb') as f:
+                        alpha.save(f)
+                    temp_index += 1
 
+                    with open(f"temp/temp{temp_index}.png", 'wb') as f:
+                        replacement_layer.save(f)
+                    temp_index += 1
+
+                    # 将 alpha 应用于裁剪后的图像
                     # replacement_layer.putalpha(alpha)
                     replacement_layer = Image.composite(replacement_layer, Image.new("RGBA", psd_size, (0, 0, 0, 0)),
                                                         alpha)
+                    with open(f"temp/temp{temp_index}.png", 'wb') as f:
+                        replacement_layer.save(f)
+                    temp_index += 1
 
                 final_image = Image.alpha_composite(final_image, replacement_layer)
+                with open(f"temp/temp{temp_index}.png", 'wb') as f:
+                    final_image.save(f)
+                temp_index += 1
 
             else:
                 # 保留其他图层
