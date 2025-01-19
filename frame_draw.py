@@ -215,7 +215,11 @@ def half_width_to_full_width(text):
 # @get_time()
 @profile_resources
 def draw_frame():
-    psd_path = 'final.psd'
+    import warnings
+    warnings.filterwarnings("ignore", module="psd_tools")
+
+    psd_path = 'final_lite.psd'
+    # psd_path = 'text_test.psd'
     psd = PSDImage.open(psd_path)
     layer_name = ["UI_Chara_1", "UI_Chara_2", "UI_Chara_3"]
     new_image_path = "UI_Chara_3.png"
@@ -225,13 +229,15 @@ def draw_frame():
 
     # 图层替换定义
     replacements = {
+        "User_Name": ["我去是舞萌痴AA","SEGA_MARUGOTHICDB.ttf",21.33],
         "UI_Chara_1": "UI_Chara_1.png",
         "UI_Chara_2": "UI_Chara_2.png",
         "UI_Chara_3": "UI_Chara_3.png",
         "background": "bg.png",
         "UI_Icon_image": "UI_Icon.png",
         "UI_Plate_409501": "UI_Plate.png",
-        "User_Name": ["我去是舞萌痴AA", "SEGA_MARUGOTHICDB.ttf", 32.57]
+        "Leader_Star_Color": 50,
+        "Leader_Star_MAX": False
     }
 
     final_image = process_layer(psd, replacements, final_image)
@@ -242,4 +248,8 @@ def draw_frame():
     return final_image
 
 
+# test2()
 draw_frame()
+# import timeit
+#
+# print(timeit.timeit("draw_frame()", setup="from __main__ import draw_frame", number=10) / 10)
