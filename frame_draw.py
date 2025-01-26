@@ -59,10 +59,6 @@ def get_time(log=True, log_level=logging.INFO):
     return decorator
 
 
-temp_index = 0
-
-
-
 # @get_time()
 def process_layer(psd, replacements, final_image, psd_size=None):
     global temp_index
@@ -154,40 +150,21 @@ def process_layer(psd, replacements, final_image, psd_size=None):
                     # size = (bbox[2] - bbox[0], bbox[3] - bbox[1])  # (width, height)
                     size = (bbox[2] - bbox[0], bbox[3] - bbox[1])  # (width, height)
                     # 获取蒙版的 alpha 通道数据
-                    mask_data = layer.mask.topil()  # 获取蒙版图像
-                    with open(f"temp/temp{temp_index}.png", 'wb') as f:
-                        mask_data.save(f)
-                    temp_index += 1
-                    mask_data = mask_data.convert("L")  # 转换为灰度图像，值在 0 到 255 之间
-
                     mask_data = layer.mask.topil()
+                    mask_data = mask_data.convert("L")
+
+                    # 创建一个与裁剪图像大小相同的透明图像
                     alpha = Image.new("L", replacement_layer.size, 0)
-                    with open(f"temp/temp{temp_index}.png", 'wb') as f:
-                        alpha.save(f)
-                    temp_index += 1
 
                     # 粘贴蒙版
                     alpha.paste(mask_data, position)
-                    with open(f"temp/temp{temp_index}.png", 'wb') as f:
-                        alpha.save(f)
-                    temp_index += 1
-
-                    with open(f"temp/temp{temp_index}.png", 'wb') as f:
-                        replacement_layer.save(f)
-                    temp_index += 1
 
                     # 将 alpha 应用于裁剪后的图像
                     # replacement_layer.putalpha(alpha)
                     replacement_layer = Image.composite(replacement_layer, Image.new("RGBA", psd_size, (0, 0, 0, 0)),
                                                         alpha)
-                    with open(f"temp/temp{temp_index}.png", 'wb') as f:
-                        replacement_layer.save(f)
-                    temp_index += 1
 
                 final_image = Image.alpha_composite(final_image, replacement_layer)
-                with open(f"temp/temp{temp_index}.png", 'wb') as f:
-                    final_image.save(f)
-                temp_index += 1
 
             else:
                 # 保留其他图层
@@ -239,17 +216,10 @@ def draw_frame():
         "Leader_Star_Color": 50,
         "Leader_Star_MAX": False
     }
-
     final_image = process_layer(psd, replacements, final_image)
 
-    # final_image.show()
+
     final_image.save("output.png")
 
-    return final_image
-
-
-# test2()
 draw_frame()
-# import timeit
-#
-# print(timeit.timeit("draw_frame()", setup="from __main__ import draw_frame", number=10) / 10)
+
