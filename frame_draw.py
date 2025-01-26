@@ -5,9 +5,7 @@ import logging
 import time
 import psutil
 import os
-import warnings
 
-warnings.filterwarnings("ignore", module="psd_tools")
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('psd_tools.psd.image_resources').setLevel(logging.ERROR)
 logging.getLogger('psd_tools.psd.tagged_blocks').setLevel(logging.ERROR)
@@ -81,14 +79,10 @@ def process_layer(psd, replacements, final_image, psd_size=None):
                         # 获取蒙版
                         mask = layer.mask.topil()
                         mask = mask.convert("L")
-                        with open(f"temp/star_mask1.png", 'wb') as f:
-                            mask.save(f)
 
                         # 编辑蒙版
                         draw_mask = ImageDraw.Draw(mask)
                         draw_mask.rectangle([0, 0, mask.width, mask.height * (mask_percent / 100)], fill=0)
-                        with open(f"temp/star_mask_edit.png", 'wb') as f:
-                            mask.save(f)
 
                         # 创建一个与PSD大小相同的空白图像，并将替换后的图像粘贴到目标图层的位置
                         replacement_layer = Image.new("RGBA", psd_size)
@@ -104,8 +98,6 @@ def process_layer(psd, replacements, final_image, psd_size=None):
                         # 将 alpha 应用于裁剪后的图像
                         replacement_layer = Image.composite(replacement_layer,
                                                             Image.new("RGBA", psd_size, (0, 0, 0, 0)), alpha)
-                        with open(f"temp/star_mask2.png", 'wb') as f:
-                            alpha.save(f)
 
                         final_image = Image.alpha_composite(final_image, replacement_layer)
 
